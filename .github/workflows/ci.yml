@@ -40,9 +40,10 @@ jobs:
               | tar xz --strip-components=1 -C /usr/local/bin docker/docker
           fi
           if ! docker info >/dev/null 2>&1; then
+            export DOCKER_HOST=tcp://docker-proxy:2375
             echo "DOCKER_HOST=tcp://docker-proxy:2375" >> "$GITHUB_ENV"
           fi
-          docker version
+          docker info >/dev/null
 
       - name: Detect registry
         id: detect

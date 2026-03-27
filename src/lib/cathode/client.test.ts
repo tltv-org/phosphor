@@ -66,6 +66,29 @@ describe('CathodeClient.connect', () => {
 		expect(info.version).toBe('unknown');
 	});
 
+	it('rejects non-JSON response (SPA fallback)', async () => {
+		const mock = vi.fn().mockReturnValue(Promise.resolve({
+			ok: true,
+			status: 200,
+			headers: { get: (h: string) => h === 'content-type' ? 'text/html' : null },
+			text: () => Promise.resolve('<!doctype html><html>...</html>'),
+		}));
+		vi.stubGlobal('fetch', mock);
+
+		const client = new CathodeClient();
+		await expect(client.connect('http://localhost:9888', ''))
+			.rejects.toThrow('No playout backend found at this address');
+	});
+
+	it('rejects gateway error as no backend', async () => {
+		const mock = vi.fn().mockReturnValue(errorResponse(502, 'Bad Gateway'));
+		vi.stubGlobal('fetch', mock);
+
+		const client = new CathodeClient();
+		await expect(client.connect('http://localhost:9888', ''))
+			.rejects.toThrow('No playout backend found at this address');
+	});
+
 	it('throws CathodeApiError on auth failure', async () => {
 		const mock = vi.fn().mockReturnValue(errorResponse(401, { detail: 'Unauthorized' }));
 		vi.stubGlobal('fetch', mock);

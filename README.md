@@ -59,7 +59,7 @@ The protocol SDK and cathode client are framework-free TypeScript with no Svelte
 
 ## Control Panel
 
-Connect to a cathode instance at `/control` with URL + API key. Sidebar groups: Station, Content, Network, Settings (plus dynamic Plugins group when plugins are loaded).
+Connect to a cathode instance at `/control` with URL + API key. If no playout backend is running at the target address, the connect form shows an error instead of entering a broken dashboard. Sidebar groups: Station, Content, Network, Settings (plus dynamic Plugins group when plugins are loaded).
 
 ### Station
 

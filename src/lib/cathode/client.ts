@@ -145,7 +145,25 @@ export class CathodeClient implements BackendAdapter {
 		this.baseUrl = baseUrl.replace(/\/$/, '');
 		this.apiKey = apiKey;
 
-		const status = await this.get<SystemStatus>('/api/status');
+		let status: SystemStatus;
+		try {
+			status = await this.get<SystemStatus>('/api/status');
+		} catch (e) {
+			// Gateway errors (502/503/504) mean the reverse proxy can't reach
+			// the backend — same as no backend running.
+			if (e instanceof CathodeApiError && e.status >= 502 && e.status <= 504) {
+				throw new Error('No playout backend found at this address');
+			}
+			throw e;
+		}
+
+		// Validate response is a real status object — not an SPA fallback HTML page.
+		// When no backend is running, sirv returns index.html (200, text/html) which
+		// request() passes through as a raw string instead of a parsed object.
+		if (typeof status !== 'object' || status === null) {
+			throw new Error('No playout backend found at this address');
+		}
+
 		return {
 			version: status.version || 'unknown',
 			backend: 'cathode',
