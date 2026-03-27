@@ -1,0 +1,141 @@
+/**
+ * Global styles — colours from CSS custom properties (lib/themes/).
+ * Component styles live in scoped .svelte <style> blocks.
+ */
+
+/* ── Reset ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+
+body {
+	background: var(--bg-base);
+	color: var(--text-primary);
+	font-family: var(--font-sans);
+	line-height: 1.4;
+	min-height: 100vh;
+	overflow-x: hidden;
+}
+
+/* ── Typography ── */
+h1, h2, h3, h4 { font-weight: 600; line-height: 1.2; }
+h1 { font-size: 1.25rem; }
+h2 { font-size: 1.1rem; }
+h3 { font-size: 0.95rem; }
+code, pre, .mono { font-family: var(--font-mono); }
+
+a {
+	color: var(--text-primary);
+	text-decoration: none;
+}
+a:hover { color: var(--text-secondary); }
+
+/* ── Form elements ── */
+input, select, textarea, button {
+	font-family: inherit;
+	font-size: inherit;
+}
+
+input, select, textarea {
+	background: var(--bg-input);
+	border: 1px solid var(--border-default);
+	color: var(--text-primary);
+	padding: 0.4rem 0.6rem;
+	border-radius: var(--radius-sm);
+	outline: none;
+	transition: border-color 0.1s;
+}
+input:focus, select:focus, textarea:focus {
+	border-color: var(--border-focus);
+}
+input::placeholder, textarea::placeholder {
+	color: var(--text-muted);
+}
+
+button {
+	cursor: pointer;
+	border: none;
+	border-radius: var(--radius-sm);
+	padding: 0.4rem 0.8rem;
+	font-weight: 500;
+	transition: background 0.1s, opacity 0.1s;
+}
+button:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+/* ── Button variants ── */
+.btn-primary {
+	background: var(--text-primary);
+	color: var(--bg-base);
+}
+.btn-primary:hover:not(:disabled) { opacity: 0.85; }
+
+.btn-surface {
+	background: var(--bg-surface);
+	color: var(--text-secondary);
+	border: 1px solid var(--border-default);
+}
+.btn-surface:hover:not(:disabled) {
+	color: var(--text-primary);
+	border-color: var(--border-focus);
+}
+
+.btn-danger {
+	background: var(--status-error);
+	color: #fff;
+}
+.btn-danger:hover:not(:disabled) { opacity: 0.85; }
+
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+.btn-xs { padding: 0.15rem 0.35rem; font-size: 0.68rem; }
+
+/* ── Badge (management dashboard) ── */
+.badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 0.15rem 0.5rem;
+	font-size: 0.65rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	border: 1px solid var(--border-default);
+}
+.badge-live {
+	color: var(--status-live);
+	border-color: var(--status-live);
+}
+.badge-playlist {
+	color: var(--text-muted);
+}
+.badge .dot {
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: currentColor;
+}
+.badge-live .dot { animation: pulse 2s ease-in-out infinite; }
+
+/* ── Animations ── */
+@keyframes pulse {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.3; }
+}
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
+
+/* ── Utility ── */
+.truncate {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-default); }
+::-webkit-scrollbar-thumb:hover { background: var(--border-focus); }
+* { scrollbar-width: thin; scrollbar-color: var(--border-default) transparent; }

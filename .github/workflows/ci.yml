@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ── Test + type check + build ──
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx svelte-check --tsconfig ./tsconfig.json
+      - run: npm run build
+
+  # ── Push images to container registry ──
+  push:
+    needs: [test]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Docker
+        run: |
+          if ! command -v docker >/dev/null 2>&1; then
+            curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-27.5.1.tgz \
+              | tar xz --strip-components=1 -C /usr/local/bin docker/docker
+          fi
+          if ! docker info >/dev/null 2>&1; then
+            echo "DOCKER_HOST=tcp://docker-proxy:2375" >> "$GITHUB_ENV"
+          fi
+          docker version
+
+      - name: Detect registry
+        id: detect
+        run: |
+          SERVER="${{ github.server_url }}"
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          if echo "$SERVER" | grep -q "github\.com"; then
+            echo "registry=ghcr.io" >> "$GITHUB_OUTPUT"
+            echo "image_base=ghcr.io/${REPO}" >> "$GITHUB_OUTPUT"
+          else
+            HOST="${FORGEJO_REGISTRY:-$(echo "$SERVER" | sed 's|https\?://||' | sed 's|:[0-9]*$||')}"
+            echo "registry=${HOST}" >> "$GITHUB_OUTPUT"
+            echo "image_base=${HOST}/${REPO}" >> "$GITHUB_OUTPUT"
+          fi
+          if [ "$BRANCH" = "dev" ]; then
+            echo "tag=dev" >> "$GITHUB_OUTPUT"
+          elif [ "$BRANCH" = "main" ]; then
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Login to registry
+        run: |
+          TOKEN="${{ secrets.PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}"
+          echo "${TOKEN}" | \
+            docker login "${{ steps.detect.outputs.registry }}" \
+              -u "${{ github.repository_owner }}" --password-stdin
+
+      - name: Build and push image
+        run: |
+          docker build \
+            -t "${{ steps.detect.outputs.image_base }}:${{ steps.detect.outputs.tag }}" .
+          docker push "${{ steps.detect.outputs.image_base }}:${{ steps.detect.outputs.tag }}"
