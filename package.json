@@ -2,6 +2,7 @@
 	"name": "phosphor",
 	"private": true,
 	"version": "1.0.1",
+	"license": "MIT",
 	"description": "TLTV client — stream viewer + cathode management dashboard",
 	"type": "module",
 	"scripts": {
