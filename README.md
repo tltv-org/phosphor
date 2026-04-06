@@ -116,8 +116,16 @@ Themes control the viewer experience (player, channel bar, TV guide). The manage
 
 Built-in themes: Midnight (default), Phosphor Green, Broadcast, Ice Planet. Custom themes are JSON objects with CSS custom property overrides. See `src/lib/themes/types.ts` for the full token list.
 
-## Related
+## Links
 
+- [timelooptv.org](https://timelooptv.org) — Project homepage
+- [Spec](https://spec.timelooptv.org) — Protocol specification
+- [Demo](https://demo.timelooptv.org) — Live demo
+- [GitHub](https://github.com/tltv-org) — All repositories
 - [cathode](https://github.com/tltv-org/cathode) — TLTV reference server
 - [cathode-plugins](https://github.com/tltv-org/cathode-plugins) — Plugin system
 - [protocol](https://github.com/tltv-org/protocol) — TLTV protocol specification
+
+## License
+
+MIT -- see [LICENSE](LICENSE).
