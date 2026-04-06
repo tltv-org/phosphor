@@ -115,7 +115,7 @@ Resolution verifies Ed25519 signatures (rejects invalid), checks protocol versio
 
 Brutalist minimal, matching the [timelooptv.org](https://timelooptv.org) design language. Monospace typography, no boxes, content floats in space separated by horizontal rules. Automatic light/dark mode via `prefers-color-scheme`.
 
-Self-hosted Space Grotesk Bold for the brand, monospace system fonts for everything else. No external font CDNs, no tracking.
+System font stacks only — monospace for app content, sans-serif for shared chrome (nav, footer). No custom fonts, no external CDNs, no tracking.
 
 The default theme uses CSS custom properties with media queries — no JavaScript needed for light/dark switching. Override themes (Phosphor Green, Broadcast, Ice Planet) apply inline CSS vars for a different look. Custom themes are JSON objects with property overrides. See `src/lib/themes/types.ts` for the full token list.
 

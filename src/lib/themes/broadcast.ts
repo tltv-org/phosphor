@@ -54,7 +54,7 @@ const broadcast: Theme = {
 		'radius-lg': '12px',
 		'font-sans': "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace",
 		'font-mono': "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace",
-		'font-brand': "'Space Grotesk', sans-serif",
+		'font-brand': "var(--font-sans)",
 
 		// ── Effects ──
 		'glow-color': 'transparent',

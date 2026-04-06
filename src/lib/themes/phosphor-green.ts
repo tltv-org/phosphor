@@ -54,7 +54,7 @@ const phosphorGreen: Theme = {
 		'radius-lg': '6px',
 		'font-sans': "'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace",
 		'font-mono': "'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace",
-		'font-brand': "'Space Grotesk', sans-serif",
+		'font-brand': "var(--font-sans)",
 
 		// ── Effects ──
 		'glow-color': 'rgba(51, 255, 51, 0.4)',

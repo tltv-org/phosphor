@@ -60,7 +60,7 @@ const icePlanet: Theme = {
 		'radius-lg': '4px',
 		'font-sans': "'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace",
 		'font-mono': "'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace",
-		'font-brand': "'Space Grotesk', sans-serif",
+		'font-brand': "var(--font-sans)",
 
 		// ── Effects ──
 		'glow-color': 'rgba(255, 102, 0, 0.35)',

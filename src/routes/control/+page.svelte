@@ -1200,12 +1200,13 @@
 
 	/* ── Connect panel ── */
 	.connect-panel {
-		max-width: 400px; margin: 0 auto; padding: 1.5rem;
+		max-width: 560px; margin: 0 auto; padding: 1.5rem;
 		display: flex; flex-direction: column;
 		padding-top: 20vh;
+		width: 100%;
 	}
 	.connect-brand {
-		font-family: 'Space Grotesk', sans-serif;
+		font-family: var(--font-sans);
 		font-weight: 700; font-size: 2.5rem;
 		color: #fff;
 	}
@@ -1225,6 +1226,8 @@
 		color: #fff; padding: 0.6rem 0;
 		font-family: inherit; font-size: 0.9rem; outline: none;
 		width: 100%;
+		min-width: 0;
+		text-overflow: ellipsis;
 	}
 	.connect-form input:focus { border-bottom-color: rgba(255, 255, 255, 0.5); }
 	.connect-form input::placeholder { color: rgba(255, 255, 255, 0.1); }

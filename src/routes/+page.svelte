@@ -68,13 +68,22 @@
 		return (d.getTime() - todayMidnight.getTime()) / 60000;
 	}
 
+	function getTimezone(): string {
+		try {
+			return new Intl.DateTimeFormat('en', { timeZoneName: 'short' })
+				.formatToParts(new Date())
+				.find(p => p.type === 'timeZoneName')?.value || '';
+		} catch { return ''; }
+	}
+
 	function formatClock(): string {
 		const now = new Date();
 		const h = now.getHours();
 		const m = now.getMinutes();
 		const ampm = h >= 12 ? 'PM' : 'AM';
 		const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-		return `${h12}:${pad2(m)} ${ampm}`;
+		const tz = getTimezone();
+		return `${h12}:${pad2(m)} ${ampm}${tz ? ' ' + tz : ''}`;
 	}
 
 	// Guide config
@@ -197,7 +206,7 @@
 	const displayUri = parsed.token
 		? `tltv://${result.metadata.id}@${result.hint}`
 		: fullUri;
-	history.replaceState(null, '', `${location.pathname}?channel=${encodeURIComponent(displayUri)}`);
+	history.replaceState(history.state, '', `${location.pathname}?channel=${encodeURIComponent(displayUri)}`);
 	channelInput = fullUri; showTuneInput = false; tuning = false;
 	// Add to guide if not already present
 	addChannelToGuide(result.metadata.id, result.metadata.name || result.metadata.id.substring(0, 12) + '...', result.hint, result.source || 'origin');
@@ -568,9 +577,18 @@
 	</div>
 
 	<footer class="viewer-footer">
-		<a href="https://timelooptv.org">timelooptv.org</a>
-		<a href="https://github.com/tltv-org">github</a>
-		<a href="https://spec.timelooptv.org">spec</a>
+		<div class="footer-left">
+			<a href="https://timelooptv.org" class="footer-mark" aria-label="timelooptv.org">
+				<svg viewBox="0 0 491.3 349.8" fill="currentColor" aria-hidden="true">
+					<g transform="translate(-0.18,349.81) scale(0.1,-0.1)"><path d="M2050 3493 c-881 -31 -1492 -102 -1671 -194 -95 -48 -171 -145 -214 -272 -98 -292 -154 -705 -162 -1192 -8 -497 27 -842 127 -1233 48 -187 74 -246 140 -316 96 -102 195 -137 505 -181 756 -105 1734 -133 2665 -75 330 21 800 78 959 117 195 47 311 159 370 358 52 179 98 442 128 735 24 242 24 784 0 1030 -40 397 -116 746 -191 874 -34 58 -117 133 -179 161 -243 111 -1187 198 -2092 193 -170 -1 -344 -3 -385 -5z m-246 -993 c33 -5 92 -25 132 -44 68 -32 101 -64 609 -571 296 -295 547 -543 559 -550 17 -11 80 -15 299 -15 392 -2 361 -37 365 410 3 365 0 389 -57 427 -33 23 -39 23 -303 23 -177 0 -277 -4 -291 -11 -12 -6 -95 -84 -185 -172 l-162 -162 -113 113 -112 112 170 170 c178 178 221 211 320 250 57 22 75 24 326 28 170 2 293 0 340 -7 193 -30 343 -175 378 -365 14 -76 15 -704 1 -777 -15 -79 -67 -177 -124 -235 -58 -57 -156 -109 -235 -124 -70 -13 -552 -13 -622 0 -30 5 -85 26 -124 45 -64 31 -111 75 -580 545 -280 282 -532 529 -558 551 l-49 39 -278 0 -278 0 -30 -25 c-52 -43 -53 -53 -50 -424 l3 -343 37 -34 c22 -20 49 -35 65 -35 100 -6 532 5 548 13 11 6 92 82 180 169 l160 159 113 -113 112 -113 -183 -182 c-262 -260 -269 -262 -677 -262 -141 0 -281 5 -311 10 -170 32 -310 164 -355 335 -10 37 -14 143 -14 423 0 351 1 376 21 434 52 156 176 269 332 303 75 16 530 20 621 5z"/></g>
+				</svg>
+			</a>
+			<a href="https://spec.timelooptv.org">spec</a>
+			<a href="https://github.com/tltv-org">github</a>
+			<span class="footer-sep" aria-hidden="true">|</span>
+			<a href="/control">control</a>
+		</div>
+		<a href="/license">MIT License</a>
 	</footer>
 </div>
 
@@ -633,7 +651,7 @@
 	}
 	.bar-sep { font-size: 0.8rem; color: var(--fg-faint); }
 	.bar-program {
-		font-size: 0.8rem; color: var(--fg-dim);
+		font-size: 0.8rem; color: var(--fg-muted);
 		overflow: hidden; text-overflow: ellipsis;
 		white-space: nowrap; min-width: 0;
 	}
@@ -675,12 +693,12 @@
 		overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
 	}
 	.uri-btn:hover { color: var(--fg); }
-	.uri-btn.copied { color: var(--fg-dim); }
+	.uri-btn.copied { color: var(--fg-muted); }
 	.text-btn {
 		background: none; border: none; color: var(--fg);
 		font-size: 0.8rem; cursor: pointer; padding: 0;
 	}
-	.text-btn:hover:not(:disabled) { color: var(--fg-dim); }
+	.text-btn:hover:not(:disabled) { color: var(--fg-muted); }
 	.text-btn:disabled { opacity: 0.3; }
 	.tune-input {
 		flex: 1; background: none; border: none; color: var(--fg);
@@ -709,7 +727,7 @@
 		display: flex; align-items: center;
 		padding: 0;
 		border: none;
-		background: none; color: var(--fg-dim);
+		background: none; color: var(--fg-muted);
 		font-size: 0.8rem; text-align: left; cursor: pointer;
 		width: 100%; min-width: 0;
 	}
@@ -745,7 +763,7 @@
 		box-sizing: border-box; overflow: hidden;
 	}
 	.guide-cell:hover .cell-title { color: var(--fg); }
-	.guide-cell:focus-visible { outline: 1px solid var(--fg-dim); outline-offset: -1px; z-index: 5; }
+	.guide-cell:focus-visible { outline: 1px solid var(--fg-muted); outline-offset: -1px; z-index: 5; }
 	.guide-cell.now { border-left: 2px solid var(--fg); }
 	.cell-title {
 		font-size: 0.75rem; color: var(--fg-faint);
@@ -764,11 +782,23 @@
 		width: 100%; max-width: 1100px;
 		border-top: 1px solid var(--rule);
 		margin-top: auto;
-		padding: 2rem 0 3rem;
-		display: flex; gap: 1.5rem; flex-wrap: wrap;
+		padding: 2.5rem 2rem 4rem;
+		display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
 		font-size: 0.85rem;
-		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+		font-family: var(--font-sans);
+		color: var(--fg-faint);
 	}
+	.footer-left {
+		display: flex; align-items: center; gap: 1.5rem;
+	}
+	.footer-mark {
+		display: flex; align-items: center;
+		color: var(--fg-faint); opacity: 0.4;
+		border-bottom: none;
+	}
+	.footer-mark:hover { opacity: 0.7; }
+	.footer-mark svg { height: 14px; width: auto; }
+	.footer-sep { color: var(--fg-faint); }
 	.viewer-footer a {
 		color: var(--fg-faint);
 		text-decoration: none;
@@ -791,6 +821,6 @@
 		.bar-program { display: none; }
 		.bar-sep { display: none; }
 		.volume-slider { display: none; }
-		.viewer-footer { margin-top: 1.5rem; padding: 1.5rem 0 2rem; font-size: 0.75rem; }
+		.viewer-footer { margin-top: 1.5rem; padding: 1.5rem 1rem 2rem; font-size: 0.75rem; }
 	}
 </style>

@@ -75,7 +75,7 @@ export const THEME_TOKENS = [
 	'radius-lg',
 	'font-sans',
 	'font-mono',
-	'font-brand',        // brand/logo font (Space Grotesk)
+	'font-brand',        // brand font (aliases --font-sans)
 
 	// ── Effects ──
 	'glow-color',        // phosphor glow on text/elements (set to 'transparent' for none)
