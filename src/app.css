@@ -1,120 +1,193 @@
 /**
- * Global styles — colours from CSS custom properties (lib/themes/).
- * Component styles live in scoped .svelte <style> blocks.
+ * Global styles — brutalist minimal.
+ *
+ * CSS defaults with prefers-color-scheme for automatic light/dark.
+ * Monospace everywhere. Space Grotesk for brand only.
  */
+
+/* ── Default variables — light mode ── */
+:root {
+	--bg: #fff;
+	--fg: #000;
+	--fg-dim: #555;
+	--fg-faint: #999;
+	--rule: #ddd;
+	--accent: #dc2626;
+
+	/* Surface tokens (kept for control panel compat) */
+	--bg-base: #fff;
+	--bg-surface: #fff;
+	--bg-surface-raised: #f4f4f4;
+	--bg-overlay: rgba(255, 255, 255, 0.92);
+	--bg-input: #fff;
+	--border-default: #ddd;
+	--border-subtle: #eee;
+	--border-focus: #999;
+	--text-primary: #000;
+	--text-secondary: #555;
+	--text-muted: #999;
+	--text-inverse: #fff;
+	--accent-hover: #333;
+	--accent-text: #fff;
+
+	/* Status */
+	--status-live: #dc2626;
+	--status-playlist: rgba(0, 0, 0, 0.3);
+	--status-federation: #2563eb;
+	--status-success: #16a34a;
+	--status-warning: #d97706;
+	--status-error: #dc2626;
+
+	/* Player */
+	--player-bg: #000;
+	--player-controls: #000;
+	--player-progress: #000;
+	--player-buffer: rgba(0, 0, 0, 0.15);
+
+	/* EPG */
+	--epg-bg: #f4f4f4;
+	--epg-block: rgba(0, 0, 0, 0.06);
+	--epg-now-marker: #dc2626;
+	--epg-text: rgba(0, 0, 0, 0.5);
+
+	/* Legacy compat tokens */
+	--epg-block-playlist: rgba(0, 0, 0, 0.06);
+
+	/* Geometry */
+	--radius-sm: 0;
+	--radius-md: 0;
+	--radius-lg: 0;
+	--font-brand: 'Space Grotesk', sans-serif;
+	--font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+	--font-sans: var(--font-mono);
+
+	/* Effects — none */
+	--glow-color: transparent;
+	--glow-accent: transparent;
+	--scanline-opacity: 0;
+	--frame-border: rgba(0, 0, 0, 0.15);
+}
+
+/* ── Dark mode ── */
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #000;
+		--fg: #fff;
+		--fg-dim: #999;
+		--fg-faint: #666;
+		--rule: #333;
+
+		--bg-base: #000;
+		--bg-surface: #000;
+		--bg-surface-raised: #111;
+		--bg-overlay: rgba(0, 0, 0, 0.92);
+		--bg-input: #000;
+		--border-default: #333;
+		--border-subtle: #222;
+		--border-focus: #666;
+		--text-primary: #fff;
+		--text-secondary: #999;
+		--text-muted: #666;
+		--text-inverse: #000;
+		--accent-hover: #ccc;
+		--accent-text: #000;
+
+		--status-live: #ef4444;
+		--status-playlist: rgba(255, 255, 255, 0.25);
+		--status-federation: #60a5fa;
+		--status-success: #4ade80;
+		--status-warning: #fbbf24;
+		--status-error: #ef4444;
+
+		--player-controls: #fff;
+		--player-progress: #fff;
+		--player-buffer: rgba(255, 255, 255, 0.15);
+
+		--epg-bg: rgba(255, 255, 255, 0.03);
+		--epg-block: rgba(255, 255, 255, 0.06);
+		--epg-now-marker: #ef4444;
+		--epg-text: rgba(255, 255, 255, 0.5);
+		--epg-block-playlist: rgba(255, 255, 255, 0.06);
+
+		--frame-border: rgba(255, 255, 255, 0.15);
+	}
+}
 
 /* ── Reset ── */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+html { font-size: 16px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
 body {
-	background: var(--bg-base);
-	color: var(--text-primary);
-	font-family: var(--font-sans);
-	line-height: 1.4;
+	background: var(--bg);
+	color: var(--fg);
+	font-family: var(--font-mono);
+	line-height: 1.5;
 	min-height: 100vh;
 	overflow-x: hidden;
 }
 
 /* ── Typography ── */
-h1, h2, h3, h4 { font-weight: 600; line-height: 1.2; }
+h1, h2, h3, h4 { font-weight: 700; line-height: 1.2; }
 h1 { font-size: 1.25rem; }
 h2 { font-size: 1.1rem; }
 h3 { font-size: 0.95rem; }
 code, pre, .mono { font-family: var(--font-mono); }
 
-a {
-	color: var(--text-primary);
-	text-decoration: none;
-}
-a:hover { color: var(--text-secondary); }
+a { color: inherit; text-decoration: none; }
 
 /* ── Form elements ── */
-input, select, textarea, button {
-	font-family: inherit;
-	font-size: inherit;
-}
+input, select, textarea, button { font-family: inherit; font-size: inherit; }
 
 input, select, textarea {
-	background: var(--bg-input);
-	border: 1px solid var(--border-default);
-	color: var(--text-primary);
+	background: var(--bg);
+	border: 1px solid var(--rule);
+	color: var(--fg);
 	padding: 0.4rem 0.6rem;
-	border-radius: var(--radius-sm);
 	outline: none;
-	transition: border-color 0.1s;
 }
-input:focus, select:focus, textarea:focus {
-	border-color: var(--border-focus);
-}
-input::placeholder, textarea::placeholder {
-	color: var(--text-muted);
-}
+input:focus, select:focus, textarea:focus { border-color: var(--fg); }
+input::placeholder, textarea::placeholder { color: var(--fg-faint); }
 
 button {
 	cursor: pointer;
 	border: none;
-	border-radius: var(--radius-sm);
 	padding: 0.4rem 0.8rem;
 	font-weight: 500;
-	transition: background 0.1s, opacity 0.1s;
 }
-button:disabled {
-	opacity: 0.4;
-	cursor: not-allowed;
-}
+button:disabled { opacity: 0.3; cursor: not-allowed; }
 
 /* ── Button variants ── */
 .btn-primary {
-	background: var(--text-primary);
-	color: var(--bg-base);
+	background: var(--fg);
+	color: var(--bg);
+	border: 1.5px solid var(--fg);
 }
-.btn-primary:hover:not(:disabled) { opacity: 0.85; }
+.btn-primary:hover:not(:disabled) { opacity: 0.8; }
 
 .btn-surface {
-	background: var(--bg-surface);
-	color: var(--text-secondary);
-	border: 1px solid var(--border-default);
+	background: transparent;
+	color: var(--fg-dim);
+	border: 1px solid var(--rule);
 }
-.btn-surface:hover:not(:disabled) {
-	color: var(--text-primary);
-	border-color: var(--border-focus);
-}
+.btn-surface:hover:not(:disabled) { color: var(--fg); border-color: var(--fg); }
 
-.btn-danger {
-	background: var(--status-error);
-	color: #fff;
-}
-.btn-danger:hover:not(:disabled) { opacity: 0.85; }
+.btn-danger { background: var(--accent); color: #fff; }
+.btn-danger:hover:not(:disabled) { opacity: 0.8; }
 
 .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
 .btn-xs { padding: 0.15rem 0.35rem; font-size: 0.68rem; }
 
-/* ── Badge (management dashboard) ── */
+/* ── Badge ── */
 .badge {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.3rem;
+	display: inline-flex; align-items: center; gap: 0.3rem;
 	padding: 0.15rem 0.5rem;
-	font-size: 0.65rem;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	border: 1px solid var(--border-default);
+	font-size: 0.65rem; font-weight: 600;
+
+	border: 1px solid var(--rule);
 }
-.badge-live {
-	color: var(--status-live);
-	border-color: var(--status-live);
-}
-.badge-playlist {
-	color: var(--text-muted);
-}
-.badge .dot {
-	width: 5px;
-	height: 5px;
-	border-radius: 50%;
-	background: currentColor;
-}
+.badge-live { color: var(--accent); border-color: var(--accent); }
+.badge-playlist { color: var(--fg-faint); }
+.badge .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 .badge-live .dot { animation: pulse 2s ease-in-out infinite; }
 
 /* ── Animations ── */
@@ -122,20 +195,11 @@ button:disabled {
 	0%, 100% { opacity: 1; }
 	50% { opacity: 0.3; }
 }
-@keyframes spin {
-	to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Utility ── */
-.truncate {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-default); }
-::-webkit-scrollbar-thumb:hover { background: var(--border-focus); }
-* { scrollbar-width: thin; scrollbar-color: var(--border-default) transparent; }
+/* ── Scrollbar — hidden by default, thin where needed ── */
+::-webkit-scrollbar { width: 0; height: 0; }
+* { scrollbar-width: none; }

@@ -675,19 +675,19 @@
 <div class="manage">
 	{#if backendStore.state !== 'connected'}
 		<div class="connect-panel">
-			<h2>Connect to Server</h2>
-			<p class="connect-desc">Enter the URL and API key for your cathode instance.</p>
+			<div class="connect-brand">tltv</div>
+			<div class="connect-title">control</div>
 			<form class="connect-form" onsubmit={(e) => { e.preventDefault(); handleConnect(); }}>
 				<label>
-					<span>Server URL</span>
+					<span>server</span>
 					<input type="url" bind:value={connectUrl} placeholder="https://your-server:8888" />
 				</label>
 				<label>
-					<span>API Key</span>
-					<input type="password" bind:value={connectKey} placeholder="Your API key" />
+					<span>api key</span>
+					<input type="password" bind:value={connectKey} placeholder="" />
 				</label>
-				<button type="submit" class="btn-primary" disabled={connecting || !connectUrl.trim()}>
-					{connecting ? 'Connecting...' : 'Connect'}
+				<button type="submit" class="connect-btn" disabled={connecting || !connectUrl.trim()}>
+					{connecting ? 'connecting...' : 'connect'}
 				</button>
 			</form>
 			{#if backendStore.error}
@@ -1191,7 +1191,7 @@
 </div>
 
 <style>
-	.manage { flex: 1; display: flex; flex-direction: column; background: #0a0a14; }
+	.manage { flex: 1; display: flex; flex-direction: column; background: #000; }
 
 	/*
 	 * Admin dashboard — fixed dark palette, NOT themed.
@@ -1200,22 +1200,46 @@
 
 	/* ── Connect panel ── */
 	.connect-panel {
-		max-width: 400px; margin: 4rem auto; padding: 2rem;
-		background: #141420; border: 1px solid #2a2a3a; border-radius: 8px; color: #e0e0f0;
+		max-width: 400px; margin: 0 auto; padding: 1.5rem;
+		display: flex; flex-direction: column;
+		padding-top: 20vh;
 	}
-	.connect-panel h2 { margin-bottom: 0.25rem; }
-	.connect-desc { color: #8888a0; font-size: 0.85rem; margin-bottom: 1.5rem; }
-	.connect-form { display: flex; flex-direction: column; gap: 1rem; }
-	.connect-form label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; color: #8888a0; }
+	.connect-brand {
+		font-family: 'Space Grotesk', sans-serif;
+		font-weight: 700; font-size: 2.5rem;
+		color: #fff;
+	}
+	.connect-title {
+		font-size: 0.85rem; color: rgba(255, 255, 255, 0.35);
+		margin-top: 0.5rem;
+		margin-bottom: 4rem;
+	}
+	.connect-form { display: flex; flex-direction: column; gap: 2rem; }
+	.connect-form label {
+		display: flex; flex-direction: column; gap: 0.4rem;
+		font-size: 0.75rem; color: rgba(255, 255, 255, 0.3);
+	}
 	.connect-form input {
-		background: #0c0c18; border: 1px solid #2a2a3a; color: #e0e0f0;
-		padding: 0.5rem 0.75rem; border-radius: 4px; font-family: inherit; outline: none;
+		background: transparent; border: none;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+		color: #fff; padding: 0.6rem 0;
+		font-family: inherit; font-size: 0.9rem; outline: none;
+		width: 100%;
 	}
-	.connect-form input:focus { border-color: #5a5a7a; }
+	.connect-form input:focus { border-bottom-color: rgba(255, 255, 255, 0.5); }
+	.connect-form input::placeholder { color: rgba(255, 255, 255, 0.1); }
+	.connect-btn {
+		margin-top: 1.5rem; padding: 0.7rem 0;
+		background: transparent; border: 1.5px solid rgba(255, 255, 255, 0.25);
+		color: #fff; font-family: inherit; font-size: 0.85rem;
+		cursor: pointer; width: 100%;
+	}
+	.connect-btn:hover:not(:disabled) { border-color: #fff; }
+	.connect-btn:disabled { opacity: 0.25; cursor: not-allowed; }
 	.connect-error {
-		margin-top: 1rem; padding: 0.5rem;
-		background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);
-		border-radius: 4px; color: #ef4444; font-size: 0.8rem;
+		margin-top: 1.5rem; padding: 0.75rem 0;
+		border-top: 1px solid rgba(239, 68, 68, 0.3);
+		color: #ef4444; font-size: 0.75rem;
 	}
 
 	/* ── Dashboard layout ── */

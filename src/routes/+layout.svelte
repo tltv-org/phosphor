@@ -5,7 +5,7 @@
 	import '../app.css';
 
 	let { children } = $props();
-	let siteName = $state('TLTV');
+	let siteName = $state('tltv');
 
 	onMount(async () => {
 		themeStore.init();
@@ -14,7 +14,6 @@
 			const resp = await fetch('/.well-known/tltv');
 			if (resp.ok) {
 				const wk = await resp.json();
-				// Use node name when cathode supports it
 				if (wk.name) siteName = wk.name;
 			}
 		} catch {}
@@ -23,11 +22,9 @@
 
 <div class="shell">
 	<nav class="nav">
-		<div class="nav-inner">
-			<a href="/" class="nav-brand">{siteName}</a>
-			<span class="nav-spacer"></span>
-			<a href="/control" class="nav-link">Control</a>
-		</div>
+		<a href="/" class="nav-brand">{siteName}</a>
+		<span class="nav-spacer"></span>
+		<a href="/control" class="nav-link">control</a>
 	</nav>
 
 	<main class="main">
@@ -43,39 +40,34 @@
 	}
 
 	.nav {
-		height: 40px;
-		background: var(--bg-surface);
-		border-bottom: 1px solid var(--border-default);
-	}
-	.nav-inner {
 		display: flex;
 		align-items: center;
-		gap: 1.25rem;
-		height: 100%;
+		gap: 1.5rem;
+		height: 44px;
 		max-width: calc(1100px + 2rem);
+		width: 100%;
 		margin: 0 auto;
 		padding: 0 1rem;
+		border-bottom: 1px solid var(--rule);
 	}
 
 	.nav-brand {
-		text-decoration: none;
-		color: var(--text-primary);
+		font-family: var(--font-brand);
 		font-weight: 700;
-		font-size: 0.85rem;
-		letter-spacing: 0.05em;
+		font-size: 1rem;
+		color: var(--fg);
+		text-decoration: none;
 	}
-	.nav-brand:hover { color: var(--accent); }
 
 	.nav-spacer { flex: 1; }
 
 	.nav-link {
-		color: var(--text-secondary);
+		color: var(--fg-dim);
 		text-decoration: none;
-		font-size: 0.8rem;
+		font-size: 0.75rem;
+
 	}
-	.nav-link:hover {
-		color: var(--text-primary);
-	}
+	.nav-link:hover { color: var(--fg); }
 
 	.main {
 		flex: 1;

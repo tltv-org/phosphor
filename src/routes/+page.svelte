@@ -109,10 +109,8 @@
 
 	function scrollToNow() {
 		if (!guideViewportEl) return;
-		// Now line is at (nowMinutes - guideStart) * PX_PER_MIN in the timeline
-		// Scroll so it sits ~80px from the left
-		const nowPos = (nowMinutes - getGuideStart()) * PX_PER_MIN;
-		guideViewportEl.scrollLeft = Math.max(0, nowPos - 80);
+		// Always start at the left edge
+		guideViewportEl.scrollLeft = 0;
 	}
 
 	// ── HLS ──
@@ -194,16 +192,21 @@
 		? `tltv://${result.metadata.id}@${result.hint}?token=${encodeURIComponent(parsed.token)}`
 		: `tltv://${result.metadata.id}@${result.hint}`;
 	playerStore.setFederation(result, fullUri);
-	document.title = `${result.metadata.name || 'TLTV'} — TLTV`;
+	document.title = `${result.metadata.name || 'tltv'} — tltv`;
 	// Strip token from browser URL bar for privacy — keep it only in playerStore
 	const displayUri = parsed.token
 		? `tltv://${result.metadata.id}@${result.hint}`
 		: fullUri;
 	history.replaceState(null, '', `${location.pathname}?channel=${encodeURIComponent(displayUri)}`);
 	channelInput = fullUri; showTuneInput = false; tuning = false;
+	// Add to guide if not already present
+	addChannelToGuide(result.metadata.id, result.metadata.name || result.metadata.id.substring(0, 12) + '...', result.hint, result.source || 'origin');
 		createPlayer(); startFedGuidePoll();
 	}
-	function tuneToGuideChannel(ch: GuideChannel) { tuneToChannel(`tltv://${ch.id}`); }
+	function tuneToGuideChannel(ch: GuideChannel) {
+		const hint = ch.hints[0] || homeNode;
+		tuneToChannel(`tltv://${ch.id}@${hint}`);
+	}
 
 	/** Auto-tune to the home node's first channel on startup. */
 	async function autoTuneHome() {
@@ -237,6 +240,14 @@
 			document.body.removeChild(ta);
 			flash();
 		}
+	}
+
+	/** Add a channel to the guide list if not already present. */
+	function addChannelToGuide(id: string, name: string, hint: string, source: ChannelSource) {
+		if (guideChannels.some(c => c.id === id)) return;
+		const ch: GuideChannel = { id, name, source, hints: [hint], blocks: [], guideVerified: null };
+		guideChannels = [...guideChannels, ch];
+		fetchChannelGuide(ch);
 	}
 
 	// ── Discovery ──
@@ -429,42 +440,38 @@
 	}
 </script>
 
-<svelte:head><title>TLTV</title></svelte:head>
+<svelte:head><title>tltv</title></svelte:head>
 
 <div class="viewer">
-	<!-- Block 1: Player + controls -->
 	<div class="player-block">
 		<div class="player" bind:this={playerWrapEl}>
 			<video bind:this={videoEl} playsinline muted={playerStore.muted}></video>
 			{#if playerError}
 				<div class="overlay overlay-error">
-					<div class="overlay-brand">TLTV</div>
 					<div class="overlay-msg">{playerError}</div>
-					<button class="retry-btn" onclick={() => createPlayer()}>Retry</button>
+					<button class="retry-btn" onclick={() => createPlayer()}>retry</button>
 				</div>
 			{:else if playerStore.status !== 'live'}
 				<div class="overlay">
-					<div class="overlay-brand">TLTV</div>
 					{#if playerStore.status === 'connecting' || playerStore.status === 'buffering'}
 						<div class="spinner"></div>
 					{/if}
 					<div class="overlay-msg">{playerStore.statusMessage}</div>
 				</div>
 			{/if}
-			<!-- Source dot in top-left corner -->
-			<div class="source-dot {tunedDotClass()}"></div>
 		</div>
+
 		<div class="controls-bar">
 			<span class="bar-name">{getChannelName()}</span>
-			{#if getCurrentProgram()}<span class="bar-program">{getCurrentProgram()}</span>{/if}
+			{#if getCurrentProgram()}<span class="bar-sep">/</span><span class="bar-program">{getCurrentProgram()}</span>{/if}
 			<span class="bar-spacer"></span>
 			<button class="bar-btn" onclick={toggleMute} title={playerStore.muted ? 'Unmute' : 'Mute'}>
 				{#if playerStore.muted}
-					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
 				{:else if volume < 0.5}
-					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a3.5 3.5 0 0 1 0 7.07"></path></svg>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a3.5 3.5 0 0 1 0 7.07"></path></svg>
 				{:else}
-					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
 				{/if}
 			</button>
 			<input class="volume-slider" type="range" min="0" max="1" step="0.05"
@@ -473,62 +480,55 @@
 				title="Volume" />
 			{#if pipSupported}
 				<button class="bar-btn" onclick={togglePip} title="Picture in Picture">
-					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"></rect><rect x="12" y="9" width="8" height="6" rx="1" fill="currentColor" stroke="none" opacity="0.6"></rect></svg>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14"></rect><rect x="12" y="9" width="8" height="6" fill="currentColor" stroke="none" opacity="0.5"></rect></svg>
 				</button>
 			{/if}
 			<button class="bar-btn" onclick={toggleFullscreen} title="Fullscreen">
-				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
 			</button>
 		</div>
 	</div>
 
-	<!-- Block 2: Channel bar + guide -->
-	<div class="guide-block">
-		<!-- Channel bar -->
-		<div class="channel-bar">
-			{#if playerStore.currentUri && !showTuneInput}
-				<button class="uri-btn mono" class:copied onclick={copyUri} title="Click to copy">{#if copied}Copied!{:else}{playerStore.currentUri}{/if}</button>
-				<span class="bar-spacer"></span>
-				<button class="text-btn" onclick={() => { showTuneInput = true; channelInput = ''; }}>Tune</button>
-			{:else}
-				<input class="tune-input mono" type="text" bind:value={channelInput} placeholder="tltv://" spellcheck="false"
-					onkeydown={(e) => { if (e.key === 'Enter' && channelInput.trim()) tuneToChannel(channelInput.trim()); if (e.key === 'Escape') showTuneInput = false; }} />
-				<button class="text-btn" disabled={tuning || !channelInput.trim()} onclick={() => tuneToChannel(channelInput.trim())}>{tuning ? '...' : 'Go'}</button>
-				{#if playerStore.currentUri}
-					<button class="text-btn" onclick={() => showTuneInput = false}>Cancel</button>
-				{/if}
+	<div class="channel-bar">
+		{#if playerStore.currentUri && !showTuneInput}
+			<button class="uri-btn" class:copied onclick={copyUri} title="Click to copy">{#if copied}copied{:else}{playerStore.currentUri}{/if}</button>
+			<span class="bar-spacer"></span>
+			<button class="text-btn" onclick={() => { showTuneInput = true; channelInput = ''; }}>tune</button>
+		{:else}
+			<input class="tune-input" type="text" bind:value={channelInput} placeholder="tltv://" spellcheck="false"
+				onkeydown={(e) => { if (e.key === 'Enter' && channelInput.trim()) tuneToChannel(channelInput.trim()); if (e.key === 'Escape') showTuneInput = false; }} />
+			<button class="text-btn" disabled={tuning || !channelInput.trim()} onclick={() => tuneToChannel(channelInput.trim())}>{tuning ? '...' : 'go'}</button>
+			{#if playerStore.currentUri}
+				<button class="text-btn" onclick={() => showTuneInput = false}>cancel</button>
 			{/if}
-		</div>
+		{/if}
+	</div>
 
-		<!-- Guide -->
-		<div class="guide">
-			<div class="guide-inner">
-				<div class="guide-labels">
-					<div class="guide-corner">{clockDisplay}</div>
+	<div class="guide">
+		<div class="guide-inner">
+			<div class="guide-labels">
+				<div class="guide-corner">{clockDisplay}</div>
+				{#each guideChannels as ch}
+					<button class="guide-label" class:active={getCurrentChannelId() === ch.id} onclick={() => tuneToGuideChannel(ch)}>
+						<span class="label-name truncate">{ch.name}</span>
+					</button>
+				{/each}
+				{#if guideChannels.length === 0}
+					<div class="guide-label empty">no channels</div>
+				{/if}
+			</div>
+
+			<div class="guide-viewport" bind:this={guideViewportEl}>
+				<div class="guide-timeline" style="width: {getGuideWidth()}px">
+					<div class="time-header">
+						{#each getTimeSlots() as slot}
+							<div class="time-mark" style="left: {(slot.min - getGuideStart()) * PX_PER_MIN}px; width: {SLOT_MIN * PX_PER_MIN}px">{slot.label}</div>
+						{/each}
+					</div>
+
 					{#each guideChannels as ch}
-						<button class="guide-label" class:active={getCurrentChannelId() === ch.id} onclick={() => tuneToGuideChannel(ch)}>
-							<span class="label-dot {channelDotClass(ch)}"></span>
-							<span class="label-name truncate">{ch.name}</span>
-						</button>
-					{/each}
-					{#if guideChannels.length === 0}
-						<div class="guide-label empty">No channels</div>
-					{/if}
-				</div>
-
-				<div class="guide-viewport" bind:this={guideViewportEl}>
-					<div class="guide-timeline" style="width: {getGuideWidth()}px">
-						<!-- Time header -->
-						<div class="time-header">
-							{#each getTimeSlots() as slot}
-								<div class="time-mark" style="left: {(slot.min - getGuideStart()) * PX_PER_MIN}px; width: {SLOT_MIN * PX_PER_MIN}px">{slot.label}</div>
-							{/each}
-						</div>
-
-						<!-- Channel rows -->
-						{#each guideChannels as ch}
-							{@const guideStart = getGuideStart()}
-							{@const guideEnd = getGuideEnd()}
+						{@const guideStart = getGuideStart()}
+						{@const guideEnd = getGuideEnd()}
 						{@const hasSchedule = ch.blocks.length > 0}
 						{@const blocks = hasSchedule ? ch.blocks : [{ startMin: guideStart, endMin: guideEnd, title: ch.name }]}
 						<div class="guide-row" class:active={getCurrentChannelId() === ch.id}>
@@ -536,38 +536,42 @@
 								{@const clampStart = Math.max(block.startMin, guideStart)}
 								{@const clampEnd = Math.min(block.endMin, guideEnd)}
 								{#if clampEnd > clampStart}
-								{@const left = (clampStart - guideStart) * PX_PER_MIN}
-								{@const width = Math.max((clampEnd - clampStart) * PX_PER_MIN, 2)}
-								{@const isNow = nowMinutes >= clampStart && nowMinutes < clampEnd}
-								{@const progress = isNow && hasSchedule ? ((nowMinutes - clampStart) / (clampEnd - clampStart)) * 100 : 0}
-								<div class="guide-cell" class:now={isNow && hasSchedule}
-									style="left: {left}px; width: {width}px;{isNow && hasSchedule ? ` --progress: ${progress}%` : ''}"
-									title={hasSchedule ? `${block.title} — ${formatMinutes(block.startMin)} to ${formatMinutes(block.endMin)}` : `${ch.name} — No schedule available`}
-									role="button" tabindex="0"
-									onclick={() => tuneToGuideChannel(ch)}
-									onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tuneToGuideChannel(ch); } }}>
-									{#if width > 50}<span class="cell-title truncate">{block.title}</span>{/if}
-								</div>
+									{@const left = (clampStart - guideStart) * PX_PER_MIN}
+									{@const width = Math.max((clampEnd - clampStart) * PX_PER_MIN, 2)}
+									{@const isNow = nowMinutes >= clampStart && nowMinutes < clampEnd}
+									{@const progress = isNow && hasSchedule ? ((nowMinutes - clampStart) / (clampEnd - clampStart)) * 100 : 0}
+									<div class="guide-cell" class:now={isNow && hasSchedule}
+										style="left: {left}px; width: {width}px;{isNow && hasSchedule ? ` --progress: ${progress}%` : ''}"
+										title={hasSchedule ? `${block.title} — ${formatMinutes(block.startMin)} to ${formatMinutes(block.endMin)}` : `${ch.name} — No schedule available`}
+										role="button" tabindex="0"
+										onclick={() => tuneToGuideChannel(ch)}
+										onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tuneToGuideChannel(ch); } }}>
+										{#if width > 50}<span class="cell-title truncate">{block.title}</span>{/if}
+									</div>
 								{/if}
 							{/each}
 						</div>
-						{/each}
+					{/each}
 
-						{#if guideChannels.length === 0}
-							<div class="guide-row">
-								<div class="guide-cell" style="left: 0; width: {getGuideWidth()}px"><span class="cell-title">Discovering channels...</span></div>
-							</div>
-						{/if}
+					{#if guideChannels.length === 0}
+						<div class="guide-row">
+							<div class="guide-cell" style="left: 0; width: {getGuideWidth()}px"><span class="cell-title">discovering channels...</span></div>
+						</div>
+					{/if}
 
-						<!-- Red now line — inside the timeline, scrolls with content -->
-						{#if (nowMinutes - getGuideStart()) * PX_PER_MIN >= 0}
-							<div class="now-line" style="left: {(nowMinutes - getGuideStart()) * PX_PER_MIN}px"></div>
-						{/if}
-					</div>
+					{#if (nowMinutes - getGuideStart()) * PX_PER_MIN >= 0}
+						<div class="now-line" style="left: {(nowMinutes - getGuideStart()) * PX_PER_MIN}px"></div>
+					{/if}
 				</div>
 			</div>
 		</div>
 	</div>
+
+	<footer class="viewer-footer">
+		<a href="https://timelooptv.org">timelooptv.org</a>
+		<a href="https://github.com/tltv-org">github</a>
+		<a href="https://spec.timelooptv.org">spec</a>
+	</footer>
 </div>
 
 <style>
@@ -575,253 +579,218 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding: 1rem;
-		gap: 0.5rem;
-		background: var(--bg-base);
+		padding: 0 1rem;
+		padding-top: 1.25rem;
+		min-height: calc(100vh - 45px);
 	}
 
-	/* ── Block 1: Player ── */
+	/* ── Player ── */
 	.player-block {
 		width: 100%;
 		max-width: 1100px;
-		border: 1px solid var(--border-default);
-		border-radius: var(--radius-md);
 		overflow: hidden;
-		background: var(--bg-surface);
 		position: sticky;
 		top: 0;
 		z-index: 20;
+		background: var(--bg);
 	}
 	.player {
 		position: relative;
-		background: var(--player-bg);
+		background: #000;
 		aspect-ratio: 16 / 9;
 	}
 	video { width: 100%; height: 100%; display: block; object-fit: contain; }
 
 	.overlay {
 		position: absolute; inset: 0;
-		background: var(--bg-overlay);
-		display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem;
+		background: rgba(0, 0, 0, 0.88);
+		display: flex; flex-direction: column;
+		align-items: center; justify-content: center; gap: 0.75rem;
 		z-index: 10;
 	}
-	.overlay-brand { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.15em; color: var(--text-secondary); }
-	.overlay-msg { font-size: 0.8rem; color: var(--text-muted); }
-	.overlay-error .overlay-msg { color: #ef4444; }
+	.overlay-msg { font-size: 0.75rem; color: rgba(255, 255, 255, 0.5); }
+	.overlay-error .overlay-msg { color: var(--accent); }
 	.retry-btn {
-		margin-top: 0.75rem; padding: 0.35rem 1rem; background: rgba(255,255,255,0.1);
-		border: 1px solid rgba(255,255,255,0.2); color: var(--text-primary); border-radius: 4px;
-		font-size: 0.8rem; cursor: pointer;
+		margin-top: 0.5rem; padding: 0.35rem 1rem;
+		background: transparent; border: 1.5px solid rgba(255, 255, 255, 0.3);
+		color: #fff; font-size: 0.75rem; cursor: pointer;
 	}
-	.retry-btn:hover { background: rgba(255,255,255,0.15); }
-	.spinner { width: 18px; height: 18px; border: 2px solid var(--border-default); border-top-color: var(--text-secondary); border-radius: 50%; animation: spin 1s linear infinite; }
-
-	/* Source dot — top-left of player */
-	.source-dot {
-		position: absolute;
-		top: 10px;
-		left: 10px;
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		z-index: 15;
+	.retry-btn:hover { border-color: #fff; }
+	.spinner {
+		width: 14px; height: 14px;
+		border: 1.5px solid rgba(255, 255, 255, 0.15); border-top-color: rgba(255, 255, 255, 0.5);
+		border-radius: 50%; animation: spin 1s linear infinite;
 	}
-	.dot-ok { background: #4ade80; box-shadow: 0 0 4px rgba(74, 222, 128, 0.5); }
-	.dot-warn { background: #fbbf24; box-shadow: 0 0 4px rgba(251, 191, 36, 0.5); }
 
 	/* Controls bar */
 	.controls-bar {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		height: 36px;
-		padding: 0 0.75rem;
-		border-top: 1px solid var(--border-default);
+		display: flex; align-items: center; gap: 0.5rem;
+		height: 36px; padding: 0;
 	}
-	.bar-name { font-size: 0.8rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
-	.bar-program { font-size: 0.75rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+	.bar-name {
+		font-size: 0.85rem; font-weight: 600;
+		color: var(--fg); white-space: nowrap;
+	}
+	.bar-sep { font-size: 0.8rem; color: var(--fg-faint); }
+	.bar-program {
+		font-size: 0.8rem; color: var(--fg-dim);
+		overflow: hidden; text-overflow: ellipsis;
+		white-space: nowrap; min-width: 0;
+	}
 	.bar-spacer { flex: 1; }
 	.bar-btn {
-		background: none; border: none; color: var(--text-secondary);
+		background: none; border: none; color: var(--fg);
 		padding: 4px; display: flex; align-items: center; cursor: pointer;
+		opacity: 0.7;
 	}
-	.bar-btn:hover { color: var(--text-primary); }
+	.bar-btn:hover { opacity: 1; }
 
-	/* Volume slider */
 	.volume-slider {
-		width: 60px;
-		height: 4px;
-		-webkit-appearance: none;
-		appearance: none;
-		background: var(--border-default);
-		border: none;
-		border-radius: 2px;
-		outline: none;
-		cursor: pointer;
-		padding: 0;
+		width: 50px; height: 2px;
+		-webkit-appearance: none; appearance: none;
+		background: var(--rule);
+		border: none; outline: none; cursor: pointer; padding: 0;
 	}
 	.volume-slider::-webkit-slider-thumb {
 		-webkit-appearance: none;
-		width: 10px;
-		height: 10px;
-		border-radius: 50%;
-		background: var(--text-secondary);
-		cursor: pointer;
+		width: 8px; height: 8px;
+		background: var(--fg); cursor: pointer;
 	}
-	.volume-slider::-webkit-slider-thumb:hover { background: var(--text-primary); }
 	.volume-slider::-moz-range-thumb {
-		width: 10px;
-		height: 10px;
-		border-radius: 50%;
-		background: var(--text-secondary);
-		border: none;
-		cursor: pointer;
+		width: 8px; height: 8px;
+		background: var(--fg); border: none; cursor: pointer;
 	}
-	.volume-slider::-moz-range-thumb:hover { background: var(--text-primary); }
-	.volume-slider::-moz-range-track { background: var(--border-default); height: 4px; border-radius: 2px; border: none; }
+	.volume-slider::-moz-range-track { background: var(--rule); height: 2px; border: none; }
 
-	/* ── Block 2: Guide ── */
-	.guide-block {
-		width: 100%;
-		max-width: 1100px;
-		border: 1px solid var(--border-default);
-		border-radius: var(--radius-md);
-		overflow: hidden;
-		background: var(--bg-surface);
-	}
-
-	/* Channel bar */
+	/* ── Channel bar ── */
 	.channel-bar {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		height: 32px;
-		padding: 0 0.75rem;
-		border-bottom: 1px solid var(--border-subtle);
-		font-size: 0.75rem;
+		width: 100%; max-width: 1100px;
+		display: flex; align-items: center; gap: 0.5rem;
+		padding: 0.6rem 0;
+		font-size: 0.8rem;
 	}
 	.uri-btn {
-		background: none; border: none; color: var(--text-muted);
+		background: none; border: none; color: var(--fg-faint);
 		font-size: 0.8rem; padding: 0; cursor: pointer;
 		overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
 	}
-	.uri-btn:hover { color: var(--text-primary); }
-	.uri-btn.copied { color: var(--accent); }
+	.uri-btn:hover { color: var(--fg); }
+	.uri-btn.copied { color: var(--fg-dim); }
 	.text-btn {
-		background: none; border: none; color: var(--text-secondary);
-		font-size: 0.75rem; cursor: pointer; padding: 2px 6px;
+		background: none; border: none; color: var(--fg);
+		font-size: 0.8rem; cursor: pointer; padding: 0;
 	}
-	.text-btn:hover:not(:disabled) { color: var(--accent); }
+	.text-btn:hover:not(:disabled) { color: var(--fg-dim); }
 	.text-btn:disabled { opacity: 0.3; }
 	.tune-input {
-		flex: 1; background: none; border: none; color: var(--text-primary);
+		flex: 1; background: none; border: none; color: var(--fg);
 		font-size: 0.8rem; outline: none; padding: 0;
 	}
-	.tune-input::placeholder { color: var(--text-muted); }
+	.tune-input::placeholder { color: var(--fg-faint); }
 
-	/* Guide */
-	.guide { background: var(--epg-bg); padding-bottom: 4px; }
+	/* ── Guide ── */
+	.guide {
+		width: 100%; max-width: 1100px;
+		border-top: 1px solid var(--rule);
+		padding-top: 0.75rem;
+	}
 	.guide-inner { display: flex; }
 
-	.guide-labels {
-		flex-shrink: 0;
-		width: 140px;
-		border-right: 1px solid var(--border-default);
-		padding-bottom: 10px;
-	}
+	.guide-labels { flex-shrink: 0; width: 140px; }
 	.guide-corner {
-		height: 32px;
-		display: flex; align-items: center; justify-content: center; gap: 0.3rem;
-		font-size: 0.7rem; color: var(--text-secondary);
-		border-bottom: 1px solid var(--border-default);
+		height: 24px;
+		display: flex; align-items: center;
+		font-size: 0.75rem; color: var(--fg-faint);
+		font-variant-numeric: tabular-nums;
 	}
 
 	.guide-label {
-		height: 48px;
-		display: flex; align-items: center; gap: 0.4rem;
-		padding: 0 0.5rem;
-		border: none; border-bottom: 1px solid var(--border-subtle);
-		background: none; color: var(--text-secondary);
-		font-size: 0.75rem; text-align: left; cursor: pointer; width: 100%; min-width: 0;
+		height: 36px;
+		display: flex; align-items: center;
+		padding: 0;
+		border: none;
+		background: none; color: var(--fg-dim);
+		font-size: 0.8rem; text-align: left; cursor: pointer;
+		width: 100%; min-width: 0;
 	}
-	.guide-label:hover { color: var(--text-primary); background: var(--bg-surface-raised); }
-	.guide-label.active { color: var(--accent); background: var(--bg-surface); }
-	.guide-label.empty { cursor: default; color: var(--text-muted); justify-content: center; font-style: italic; }
+	.guide-label:hover { color: var(--fg); }
+	.guide-label.active { color: var(--fg); font-weight: 700; }
+	.guide-label.empty { cursor: default; color: var(--fg-faint); }
 
-	/* Colored dot in guide labels */
-	.label-dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-		flex-shrink: 0;
-	}
 	.label-name { min-width: 0; }
 
 	/* Timeline */
 	.guide-viewport {
 		flex: 1; overflow-x: auto; overflow-y: hidden; min-width: 0;
-		scrollbar-width: thin;
-		scrollbar-color: var(--border-focus) transparent;
 	}
-	.guide-viewport::-webkit-scrollbar { height: 6px; }
-	.guide-viewport::-webkit-scrollbar-track { background: transparent; }
-	.guide-viewport::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
-	.guide-viewport::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-	.guide-timeline { position: relative; min-height: 100%; padding-bottom: 10px; }
-	.time-header { height: 32px; position: relative; border-bottom: 1px solid var(--border-default); }
+	.guide-timeline { position: relative; min-height: 100%; }
+	.time-header { height: 24px; position: relative; }
 	.time-mark {
 		position: absolute; top: 0; height: 100%;
 		display: flex; align-items: center; padding-left: 6px;
-		font-size: 0.65rem; color: var(--text-muted);
-		border-left: 1px solid var(--border-subtle); box-sizing: border-box;
+		font-size: 0.7rem; color: var(--fg-faint);
+		border-left: 1px solid var(--rule); box-sizing: border-box;
+		font-variant-numeric: tabular-nums;
 	}
 
-	.guide-row { position: relative; height: 48px; border-bottom: 1px solid var(--border-subtle); }
-	.guide-row.active { background: var(--bg-surface); }
+	.guide-row {
+		position: relative; height: 36px;
+		border-top: 1px solid var(--rule);
+	}
 
 	.guide-cell {
-		position: absolute; top: 3px; height: calc(100% - 6px);
+		position: absolute; top: 1px; height: calc(100% - 1px);
 		display: flex; align-items: center; padding: 0 8px;
-		cursor: pointer; background: var(--epg-block-playlist);
-		border-right: 1px solid var(--epg-bg); border-radius: var(--radius-sm);
-		box-sizing: border-box; transition: filter 0.1s;
-		overflow: hidden;
+		cursor: pointer;
+		box-sizing: border-box; overflow: hidden;
 	}
-	.guide-cell:hover { filter: brightness(1.3); }
-	.guide-cell:focus-visible { outline: 2px solid var(--border-focus); outline-offset: -2px; z-index: 5; }
-	.guide-cell.now { border-left: 3px solid var(--epg-now-marker); }
-	.guide-cell.now::before {
-		content: '';
-		position: absolute;
-		left: 0; top: 0; bottom: 0;
-		width: var(--progress, 0%);
-		background: rgba(255, 255, 255, 0.06);
-		pointer-events: none;
+	.guide-cell:hover .cell-title { color: var(--fg); }
+	.guide-cell:focus-visible { outline: 1px solid var(--fg-dim); outline-offset: -1px; z-index: 5; }
+	.guide-cell.now { border-left: 2px solid var(--fg); }
+	.cell-title {
+		font-size: 0.75rem; color: var(--fg-faint);
+		min-width: 0; overflow: hidden;
+		text-overflow: ellipsis; white-space: nowrap;
 	}
-	.cell-title { font-size: 0.7rem; color: var(--epg-text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-	/* Now line — inside the scrollable timeline, moves with content */
+	/* Now line */
 	.now-line {
-		position: absolute; top: 0; bottom: 0; width: 2px;
-		background: var(--epg-now-marker); z-index: 10; pointer-events: none;
+		position: absolute; top: 0; bottom: 0; width: 1px;
+		background: var(--accent); z-index: 10; pointer-events: none;
 	}
+
+	/* ── Footer ── */
+	.viewer-footer {
+		width: 100%; max-width: 1100px;
+		border-top: 1px solid var(--rule);
+		margin-top: auto;
+		padding: 2rem 0 3rem;
+		display: flex; gap: 1.5rem; flex-wrap: wrap;
+		font-size: 0.85rem;
+		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	}
+	.viewer-footer a {
+		color: var(--fg-faint);
+		text-decoration: none;
+		border-bottom: 1px solid var(--rule);
+	}
+	.viewer-footer a:hover { color: var(--fg); }
 
 	:global(:fullscreen) video { width: 100%; height: 100%; }
 
 	@media (max-width: 640px) {
-		.viewer { padding: 0; gap: 0; }
-		.player-block { border-radius: 0; border-left: none; border-right: none; }
-		.guide-block { border-radius: 0; border-left: none; border-right: none; }
-		.guide-labels { width: 90px; padding-bottom: 6px; }
-		.guide-label { height: 40px; font-size: 0.68rem; padding: 0 0.35rem; }
-		.guide-row { height: 40px; }
-		.guide-corner { height: 26px; font-size: 0.65rem; }
-		.time-header { height: 26px; }
-		.time-mark { font-size: 0.55rem; }
-		.channel-bar { height: 28px; }
-		.controls-bar { height: 32px; }
-		.label-dot { display: none; }
+		.viewer { padding: 0 0.75rem; }
+		.guide-labels { width: 90px; }
+		.guide-label { height: 30px; font-size: 0.6rem; }
+		.guide-row { height: 30px; }
+		.guide-corner { height: 20px; font-size: 0.55rem; }
+		.time-header { height: 20px; }
+		.time-mark { font-size: 0.5rem; }
+		.channel-bar { font-size: 0.65rem; }
+		.controls-bar { height: 30px; }
 		.bar-program { display: none; }
+		.bar-sep { display: none; }
 		.volume-slider { display: none; }
+		.viewer-footer { margin-top: 1.5rem; padding: 1.5rem 0 2rem; font-size: 0.75rem; }
 	}
 </style>

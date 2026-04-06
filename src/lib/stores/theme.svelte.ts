@@ -35,8 +35,9 @@ class ThemeStore {
 			}
 		} catch { /* ignore corrupt storage */ }
 
-		// Load selected theme
-		const savedId = localStorage.getItem(STORAGE_KEY) ?? DEFAULT_THEME;
+		// Load selected theme — migrate 'midnight' → 'default'
+		let savedId = localStorage.getItem(STORAGE_KEY) ?? DEFAULT_THEME;
+		if (savedId === 'midnight') savedId = DEFAULT_THEME;
 		const theme = builtinThemes[savedId] ?? this.customThemes[savedId] ?? builtinThemes[DEFAULT_THEME];
 		this.current = theme;
 		applyTheme(theme);

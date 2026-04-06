@@ -5,11 +5,11 @@ TLTV client application. Stream viewer with federation support and a management 
 ## What it does
 
 - **Watch** any channel on the TLTV federation via `tltv://` URIs
-- **TV guide grid** with channel discovery, 30-minute time slots, red now line, click-to-tune
+- **TV guide** with channel discovery, 24h scrollable timeline, click-to-tune — channels added as you tune
 - **Manage** a cathode server — channels, playlists, programs, schedules, playout, output pipelines, peers, relays, tokens, plugins
 - **IPTV endpoints** — m3u and XMLTV links for external players (VLC, Kodi, Tivimate)
 - **Logs** — real-time server log viewer with level/source filtering and SSE streaming
-- **Theme** the viewing experience (operator-controlled, set via the management dashboard)
+- **Light/dark mode** — follows OS preference via `prefers-color-scheme`, with optional themed overrides
 
 ## Quick start
 
@@ -49,7 +49,8 @@ lib/cathode/   Cathode management client (pure TypeScript)
                servers appear, add a new adapter here
 
 lib/themes/    Viewer theming via CSS custom properties
-               Built-in: Midnight, Phosphor Green, Broadcast, Ice Planet
+               Default follows prefers-color-scheme (light/dark)
+               Overrides: Phosphor Green, Broadcast, Ice Planet
                Custom: import/export JSON, stored in localStorage
 
 lib/stores/    Svelte 5 reactive state (runes)
@@ -110,11 +111,13 @@ tltv://TVxxx...                        Bare ID — resolves via local node + pee
 
 Resolution verifies Ed25519 signatures (rejects invalid), checks protocol version (`v === 1`), and follows migration documents (up to 5 hops). After tuning, metadata is refreshed every 60s to detect stream URL changes, name changes, and key migrations. The guide polls every 30s.
 
-## Theming
+## Design
 
-Themes control the viewer experience (player, channel bar, TV guide). The management dashboard uses a fixed admin look regardless of theme.
+Brutalist minimal, matching the [timelooptv.org](https://timelooptv.org) design language. Monospace typography, no boxes, content floats in space separated by horizontal rules. Automatic light/dark mode via `prefers-color-scheme`.
 
-Built-in themes: Midnight (default), Phosphor Green, Broadcast, Ice Planet. Custom themes are JSON objects with CSS custom property overrides. See `src/lib/themes/types.ts` for the full token list.
+Self-hosted Space Grotesk Bold for the brand, monospace system fonts for everything else. No external font CDNs, no tracking.
+
+The default theme uses CSS custom properties with media queries — no JavaScript needed for light/dark switching. Override themes (Phosphor Green, Broadcast, Ice Planet) apply inline CSS vars for a different look. Custom themes are JSON objects with property overrides. See `src/lib/themes/types.ts` for the full token list.
 
 ## Links
 

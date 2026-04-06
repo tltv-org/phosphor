@@ -12,7 +12,7 @@
  */
 
 export interface Theme {
-	/** Unique machine name, e.g. "midnight", "phosphor-green" */
+	/** Unique machine name, e.g. "default", "phosphor-green" */
 	id: string;
 	/** Human-readable name shown in the theme picker */
 	name: string;
@@ -75,6 +75,7 @@ export const THEME_TOKENS = [
 	'radius-lg',
 	'font-sans',
 	'font-mono',
+	'font-brand',        // brand/logo font (Space Grotesk)
 
 	// ── Effects ──
 	'glow-color',        // phosphor glow on text/elements (set to 'transparent' for none)

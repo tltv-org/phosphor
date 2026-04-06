@@ -52,8 +52,9 @@ const broadcast: Theme = {
 		'radius-sm': '4px',
 		'radius-md': '8px',
 		'radius-lg': '12px',
-		'font-sans': "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-		'font-mono': "'JetBrains Mono', 'Fira Code', 'SF Mono', monospace",
+		'font-sans': "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace",
+		'font-mono': "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace",
+		'font-brand': "'Space Grotesk', sans-serif",
 
 		// ── Effects ──
 		'glow-color': 'transparent',

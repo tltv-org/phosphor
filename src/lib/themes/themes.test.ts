@@ -9,13 +9,13 @@ describe('built-in themes', () => {
 		expect(Object.keys(builtinThemes)).toHaveLength(4);
 	});
 
-	it('default theme is midnight', () => {
-		expect(DEFAULT_THEME).toBe('midnight');
-		expect(builtinThemes['midnight']).toBeDefined();
+	it('default theme is default', () => {
+		expect(DEFAULT_THEME).toBe('default');
+		expect(builtinThemes['default']).toBeDefined();
 	});
 
 	it('all expected themes exist', () => {
-		expect(builtinThemes['midnight']).toBeDefined();
+		expect(builtinThemes['default']).toBeDefined();
 		expect(builtinThemes['phosphor-green']).toBeDefined();
 		expect(builtinThemes['broadcast']).toBeDefined();
 		expect(builtinThemes['ice-planet']).toBeDefined();
@@ -27,23 +27,31 @@ describe('built-in themes', () => {
 		expect(typeof theme.vars).toBe('object');
 	});
 
-	it.each(Object.entries(builtinThemes))('%s defines all required tokens', (id, theme) => {
+	// Default theme has empty vars (CSS handles everything via prefers-color-scheme).
+	// Only explicit themes need to define all tokens.
+	it.each(
+		Object.entries(builtinThemes).filter(([id]) => id !== 'default')
+	)('%s defines all required tokens', (id, theme) => {
 		for (const token of THEME_TOKENS) {
 			expect(theme.vars[token], `${id} missing token: ${token}`).toBeDefined();
 		}
+	});
+
+	it('default theme has empty vars (CSS-driven)', () => {
+		expect(Object.keys(builtinThemes['default'].vars)).toHaveLength(0);
 	});
 });
 
 // ── createTheme ──
 
 describe('createTheme', () => {
-	it('creates a theme with overrides on default base', () => {
+	it('creates a theme with overrides on phosphor-green base', () => {
 		const theme = createTheme('custom', 'Custom', { accent: '#ff0000' });
 		expect(theme.id).toBe('custom');
 		expect(theme.name).toBe('Custom');
 		expect(theme.vars['accent']).toBe('#ff0000');
-		// Non-overridden tokens should come from midnight
-		expect(theme.vars['bg-base']).toBe(builtinThemes['midnight'].vars['bg-base']);
+		// Non-overridden tokens should come from phosphor-green (default base)
+		expect(theme.vars['bg-base']).toBe(builtinThemes['phosphor-green'].vars['bg-base']);
 	});
 
 	it('uses specified base theme', () => {
@@ -54,9 +62,9 @@ describe('createTheme', () => {
 		expect(theme.vars['accent']).toBe('#ff0000');
 	});
 
-	it('falls back to default theme when base does not exist', () => {
+	it('falls back to phosphor-green when base does not exist', () => {
 		const theme = createTheme('custom', 'Custom', {}, 'nonexistent');
-		expect(theme.vars['bg-base']).toBe(builtinThemes['midnight'].vars['bg-base']);
+		expect(theme.vars['bg-base']).toBe(builtinThemes['phosphor-green'].vars['bg-base']);
 	});
 
 	it('preserves all base tokens when no overrides given', () => {
@@ -92,14 +100,14 @@ describe('loadThemeFromJSON', () => {
 		expect(theme.vars['bg-base']).toBe(builtinThemes['ice-planet'].vars['bg-base']);
 	});
 
-	it('defaults to midnight base when base is omitted', () => {
+	it('defaults to phosphor-green base when base is omitted', () => {
 		const json = {
 			id: 'minimal',
 			name: 'Minimal',
 			vars: { accent: '#ff00ff' },
 		};
 		const theme = loadThemeFromJSON(json);
-		expect(theme.vars['bg-base']).toBe(builtinThemes['midnight'].vars['bg-base']);
+		expect(theme.vars['bg-base']).toBe(builtinThemes['phosphor-green'].vars['bg-base']);
 	});
 
 	it('produces a complete theme even with empty vars', () => {
@@ -113,8 +121,8 @@ describe('loadThemeFromJSON', () => {
 // ── THEME_TOKENS constant ──
 
 describe('THEME_TOKENS', () => {
-	it('has 38 tokens', () => {
-		expect(THEME_TOKENS).toHaveLength(38);
+	it('has 39 tokens', () => {
+		expect(THEME_TOKENS).toHaveLength(39);
 	});
 
 	it('contains no duplicates', () => {

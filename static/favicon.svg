@@ -1,4 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="4" fill="#0a0a0f"/>
-  <text x="16" y="22" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#6366f1" letter-spacing="0.05em">TV</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>
+    rect, path { stroke: #000; fill: none; }
+    @media (prefers-color-scheme: dark) {
+      rect, path { stroke: #fff; }
+    }
+  </style>
+  <rect x="8" y="14" width="48" height="36" rx="4" ry="4" stroke-width="5"/>
+  <path d="
+    M 32 32
+    C 32 22, 16 22, 16 32
+    C 16 42, 32 42, 32 32
+    C 32 22, 48 22, 48 32
+    C 48 42, 32 42, 32 32
+  " stroke-width="4" stroke-linecap="round"/>
 </svg>
