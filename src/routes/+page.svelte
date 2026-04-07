@@ -29,6 +29,7 @@
 	let volume = $state(0.8);
 	let pipSupported = $state(false);
 
+
 	interface GuideChannel {
 		id: string;
 		name: string;
@@ -47,7 +48,51 @@
 	let nowMinutes = $state(getNowMinutes());
 	let clockDisplay = $state(formatClock());
 	let clockTimer: ReturnType<typeof setInterval> | null = null;
+	/** Channel IDs owned by the home node (from its .well-known/tltv channels[]). */
+	let homeChannelIds = $state(new Set<string>());
 
+	// ── Guide persistence ──
+	function loadGuideChannels(): GuideChannel[] {
+		try {
+			const raw = localStorage.getItem('tltv_guide_channels');
+			if (!raw) return [];
+			const saved = JSON.parse(raw);
+			if (!Array.isArray(saved)) return [];
+			return saved.map((s: { id: string; name: string; source: string; hints: string[] }) => ({
+				id: s.id, name: s.name, source: (s.source || 'peer') as ChannelSource,
+				hints: s.hints || [], blocks: [], guideVerified: null,
+			}));
+		} catch { return []; }
+	}
+	function saveGuideChannels() {
+		try {
+			const toSave = guideChannels.map(({ id, name, source, hints }) => ({ id, name, source, hints }));
+			localStorage.setItem('tltv_guide_channels', JSON.stringify(toSave));
+		} catch {}
+	}
+	function removeChannelFromGuide(id: string) {
+		guideChannels = guideChannels.filter(c => c.id !== id);
+		saveGuideChannels();
+	}
+	/** Whether the currently tuned channel can be removed from the guide (not a home channel). */
+	function canRemoveCurrentChannel(): boolean {
+		const r = playerStore.resolved;
+		if (!r) return false;
+		return guideChannels.some(c => c.id === r.metadata.id) && !homeChannelIds.has(r.metadata.id);
+	}
+	function removeCurrentChannel() {
+		const r = playerStore.resolved;
+		if (!r) return;
+		removeChannelFromGuide(r.metadata.id);
+	}
+	/** Guide channels sorted: home channels first, then the rest by source. */
+	function sortedGuideChannels(): GuideChannel[] {
+		return [...guideChannels].sort((a, b) => {
+			const aHome = homeChannelIds.has(a.id) ? 0 : 1;
+			const bHome = homeChannelIds.has(b.id) ? 0 : 1;
+			return aHome - bHome;
+		});
+	}
 	function parseTime(str: string): number {
 		const p = str.split(':');
 		return parseInt(p[0]) * 60 + parseInt(p[1]) + parseInt(p[2] || '0') / 60;
@@ -207,6 +252,7 @@
 		? `tltv://${result.metadata.id}@${result.hint}`
 		: fullUri;
 	history.replaceState(history.state, '', `${location.pathname}?channel=${encodeURIComponent(displayUri)}`);
+	try { localStorage.setItem('tltv_last_channel', displayUri); } catch {}
 	channelInput = fullUri; showTuneInput = false; tuning = false;
 	// Add to guide if not already present
 	addChannelToGuide(result.metadata.id, result.metadata.name || result.metadata.id.substring(0, 12) + '...', result.hint, result.source || 'origin');
@@ -256,6 +302,7 @@
 		if (guideChannels.some(c => c.id === id)) return;
 		const ch: GuideChannel = { id, name, source, hints: [hint], blocks: [], guideVerified: null };
 		guideChannels = [...guideChannels, ch];
+		saveGuideChannels();
 		fetchChannelGuide(ch);
 	}
 
@@ -263,14 +310,31 @@
 	async function discoverGuideChannels() {
 		try {
 			const channels = await discoverChannels(homeNode, 20, location.protocol);
-			guideChannels = channels.map(ch => ({ id: ch.id, name: ch.name || ch.id.substring(0, 12) + '...', source: 'origin' as ChannelSource, hints: ch.hints || [], blocks: [], guideVerified: null }));
-			const wkResp = await fetch(`/.well-known/tltv`);
-			if (wkResp.ok) {
-				const wk = await wkResp.json();
-				const originIds = new Set((wk.channels || []).map((c: { id: string }) => c.id));
-				const relayIds = new Set((wk.relaying || []).map((c: { id: string }) => c.id));
-				guideChannels = guideChannels.map(ch => ({ ...ch, source: originIds.has(ch.id) ? 'origin' as ChannelSource : relayIds.has(ch.id) ? 'relay' as ChannelSource : 'peer' as ChannelSource }));
+			let originIds = new Set<string>();
+			let relayIds = new Set<string>();
+			try {
+				const wkResp = await fetch(`/.well-known/tltv`);
+				if (wkResp.ok) {
+					const wk = await wkResp.json();
+					originIds = new Set((wk.channels || []).map((c: { id: string }) => c.id));
+					relayIds = new Set((wk.relaying || []).map((c: { id: string }) => c.id));
+					homeChannelIds = originIds;
+				}
+			} catch {}
+			const getSource = (id: string, fallback: ChannelSource): ChannelSource =>
+				originIds.has(id) ? 'origin' : relayIds.has(id) ? 'relay' : fallback;
+			// Merge: update existing channels with fresh info, add newly discovered ones
+			const existingIds = new Set(guideChannels.map(c => c.id));
+			guideChannels = guideChannels.map(c => {
+				const disc = channels.find(d => d.id === c.id);
+				return disc ? { ...c, source: getSource(c.id, c.source), hints: disc.hints?.length ? disc.hints : c.hints, name: disc.name || c.name } : c;
+			});
+			for (const ch of channels) {
+				if (!existingIds.has(ch.id)) {
+					guideChannels = [...guideChannels, { id: ch.id, name: ch.name || ch.id.substring(0, 12) + '...', source: getSource(ch.id, 'peer'), hints: ch.hints || [], blocks: [], guideVerified: null }];
+				}
 			}
+			saveGuideChannels();
 			for (const ch of guideChannels) fetchChannelGuide(ch);
 		} catch {
 			// Discovery failure is non-fatal — guide may be empty.
@@ -372,15 +436,26 @@
 
 	// ── Lifecycle ──
 	onMount(() => {
+		// Restore saved guide channels before discovery
+		const saved = loadGuideChannels();
+		if (saved.length) {
+			guideChannels = saved;
+			for (const ch of saved) fetchChannelGuide(ch);
+		}
 		const params = new URLSearchParams(location.search);
 		const channel = params.get('channel');
 		if (channel) { channelInput = channel; tuneToChannel(channel); }
 		else {
-			// Check for a default channel set in Client settings
-			let defaultCh = '';
-			try { defaultCh = localStorage.getItem('tltv_default_channel') || ''; } catch {}
-			if (defaultCh) { channelInput = defaultCh; tuneToChannel(defaultCh); }
-			else { autoTuneHome(); }
+			// Priority: last tuned → configured default → auto-discover
+			let lastCh = '';
+			try { lastCh = localStorage.getItem('tltv_last_channel') || ''; } catch {}
+			if (lastCh) { channelInput = lastCh; tuneToChannel(lastCh); }
+			else {
+				let defaultCh = '';
+				try { defaultCh = localStorage.getItem('tltv_default_channel') || ''; } catch {}
+				if (defaultCh) { channelInput = defaultCh; tuneToChannel(defaultCh); }
+				else { autoTuneHome(); }
+			}
 		}
 		discoverGuideChannels();
 		pipSupported = !!document.pictureInPictureEnabled;
@@ -502,6 +577,9 @@
 		{#if playerStore.currentUri && !showTuneInput}
 			<button class="uri-btn" class:copied onclick={copyUri} title="Click to copy">{#if copied}copied{:else}{playerStore.currentUri}{/if}</button>
 			<span class="bar-spacer"></span>
+			{#if canRemoveCurrentChannel()}
+				<button class="text-btn" onclick={removeCurrentChannel}>remove</button>
+			{/if}
 			<button class="text-btn" onclick={() => { showTuneInput = true; channelInput = ''; }}>tune</button>
 		{:else}
 			<input class="tune-input" type="text" bind:value={channelInput} placeholder="tltv://" spellcheck="false"
@@ -517,7 +595,7 @@
 		<div class="guide-inner">
 			<div class="guide-labels">
 				<div class="guide-corner">{clockDisplay}</div>
-				{#each guideChannels as ch}
+				{#each sortedGuideChannels() as ch}
 					<button class="guide-label" class:active={getCurrentChannelId() === ch.id} onclick={() => tuneToGuideChannel(ch)}>
 						<span class="label-name truncate">{ch.name}</span>
 					</button>
@@ -535,7 +613,7 @@
 						{/each}
 					</div>
 
-					{#each guideChannels as ch}
+					{#each sortedGuideChannels() as ch}
 						{@const guideStart = getGuideStart()}
 						{@const guideEnd = getGuideEnd()}
 						{@const hasSchedule = ch.blocks.length > 0}
