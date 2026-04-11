@@ -180,6 +180,32 @@ describe('discoverChannels', () => {
 		const channels = await discoverChannels('dead.com:9888', 20, 'http:');
 		expect(channels).toEqual([]);
 	});
+
+	it('discovers channels on relay-only node (empty channels[], populated relaying[])', async () => {
+		const relayOnlyWk: WellKnownResponse = {
+			protocol: 'tltv',
+			versions: [1],
+			channels: [],
+			relaying: [
+				{ id: 'TVrelay1', name: 'Relayed Channel One' },
+				{ id: 'TVrelay2', name: 'Relayed Channel Two' },
+			],
+		};
+
+		mockFetch.mockImplementation((url: string) => {
+			if (url === 'http://relay.com:9888/.well-known/tltv') return jsonResponse(relayOnlyWk);
+			if (url === 'http://relay.com:9888/tltv/v1/peers') return jsonResponse({ peers: [] });
+			return failResponse(404);
+		});
+
+		const channels = await discoverChannels('relay.com:9888', 20, 'http:');
+		const ids = channels.map(c => c.id);
+
+		expect(ids).toContain('TVrelay1');
+		expect(ids).toContain('TVrelay2');
+		expect(channels).toHaveLength(2);
+		expect(channels[0].hints).toContain('relay.com:9888');
+	});
 });
 
 // ── fetchGuide ──

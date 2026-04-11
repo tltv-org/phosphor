@@ -98,8 +98,12 @@ export interface ResolvedChannel {
 	baseUrl: string;
 	/** true = valid, false = invalid, null = can't verify (no Ed25519 support / no signature). */
 	verified: boolean | null;
-	/** How this node relates to the channel: origin (owns it), relay (rebroadcasting), or peer (discovered). */
+	/** How this node relates to the channel (from signed origins field): origin, relay, or peer. */
 	source: ChannelSource;
+	/** What .well-known/tltv claimed before signed verification.
+	 *  When claimedSource is 'origin' but source is 'relay', the node is
+	 *  spoofing — a reverse proxy serving origin's .well-known but relay content. */
+	claimedSource: ChannelSource;
 	hint: string;
 	token: string | null;
 }

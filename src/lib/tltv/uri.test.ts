@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { parseTltvUri, hintToBaseUrl } from './uri';
+import { parseTltvUri, hintToBaseUrl, determineSource } from './uri';
+import type { ChannelMetadata } from './types';
 
 // ── parseTltvUri ──
 
@@ -131,5 +132,52 @@ describe('hintToBaseUrl', () => {
 
 	it('handles hint without port', () => {
 		expect(hintToBaseUrl('example.com')).toBe('https://example.com');
+	});
+});
+
+// ── determineSource ──
+
+describe('determineSource', () => {
+	/** Helper to create a partial ChannelMetadata with just the origins field. */
+	function meta(origins?: string[]): ChannelMetadata {
+		return { origins } as ChannelMetadata;
+	}
+
+	it('returns origin when hint hostname matches an origins entry', () => {
+		expect(determineSource('origin.com:9888', meta(['origin.com:9888']))).toBe('origin');
+	});
+
+	it('returns relay when hint hostname does not match any origins entry', () => {
+		expect(determineSource('relay.com:9888', meta(['origin.com:9888']))).toBe('relay');
+	});
+
+	it('returns fallback when origins is absent', () => {
+		expect(determineSource('any.com:9888', meta(), 'peer')).toBe('peer');
+	});
+
+	it('returns fallback when origins is empty', () => {
+		expect(determineSource('any.com:9888', meta([]), 'peer')).toBe('peer');
+	});
+
+	it('matches hostname ignoring port differences', () => {
+		expect(determineSource('origin.com:9888', meta(['origin.com:443']))).toBe('origin');
+	});
+
+	it('checks multiple origins entries', () => {
+		const m = meta(['node1.com:9888', 'node2.com:9888']);
+		expect(determineSource('node2.com:9888', m)).toBe('origin');
+		expect(determineSource('relay.com:9888', m)).toBe('relay');
+	});
+
+	it('defaults fallback to relay when not specified', () => {
+		expect(determineSource('any.com:9888', meta())).toBe('relay');
+	});
+
+	it('handles hint without port', () => {
+		expect(determineSource('origin.com', meta(['origin.com:9888']))).toBe('origin');
+	});
+
+	it('handles origins entry without port', () => {
+		expect(determineSource('origin.com:9888', meta(['origin.com']))).toBe('origin');
 	});
 });

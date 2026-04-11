@@ -48,8 +48,12 @@
 	let nowMinutes = $state(getNowMinutes());
 	let clockDisplay = $state(formatClock());
 	let clockTimer: ReturnType<typeof setInterval> | null = null;
-	/** Channel IDs owned by the home node (from its .well-known/tltv channels[]). */
+	/** Channel IDs originated by the home node (from .well-known/tltv channels[]).
+	 *  These are unremovable from the guide. */
 	let homeChannelIds = $state(new Set<string>());
+	/** All channel IDs served by the home node (origin + relayed).
+	 *  Used for guide pinning — home node channels sort to the top. */
+	let homeNodeChannelIds = $state(new Set<string>());
 
 	// ── Guide persistence ──
 	function loadGuideChannels(): GuideChannel[] {
@@ -85,11 +89,11 @@
 		if (!r) return;
 		removeChannelFromGuide(r.metadata.id);
 	}
-	/** Guide channels sorted: home channels first, then the rest by source. */
+	/** Guide channels sorted: home node channels first (origin + relayed), then the rest. */
 	function sortedGuideChannels(): GuideChannel[] {
 		return [...guideChannels].sort((a, b) => {
-			const aHome = homeChannelIds.has(a.id) ? 0 : 1;
-			const bHome = homeChannelIds.has(b.id) ? 0 : 1;
+			const aHome = homeNodeChannelIds.has(a.id) ? 0 : 1;
+			const bHome = homeNodeChannelIds.has(b.id) ? 0 : 1;
 			return aHome - bHome;
 		});
 	}
@@ -263,16 +267,20 @@
 		tuneToChannel(`tltv://${ch.id}@${hint}`);
 	}
 
-	/** Auto-tune to the home node's first channel on startup. */
+	/** Auto-tune to the home node's first channel on startup.
+	 *  Checks both originated channels and relayed channels — relay-only
+	 *  nodes (empty channels[], populated relaying[]) are valid targets. */
 	async function autoTuneHome() {
 		playerStore.setStatus('connecting', 'Discovering home channel...');
 		try {
 			const wk = await fetchWellKnown(homeNode, location.protocol);
-			if (!wk || !wk.channels?.length) {
+			const allChannels = [...(wk?.channels || []), ...(wk?.relaying || [])];
+			if (!allChannels.length) {
 				playerStore.setStatus('error', 'No channels found on home node');
 				return;
 			}
-			const ch = wk.channels[0];
+			// Prefer origin channels, fall back to relayed
+			const ch = wk?.channels?.length ? wk.channels[0] : allChannels[0];
 			await tuneToChannel(`tltv://${ch.id}@${homeNode}`);
 		} catch {
 			playerStore.setStatus('error', 'Failed to discover home channel');
@@ -297,9 +305,23 @@
 		}
 	}
 
-	/** Add a channel to the guide list if not already present. */
+	/** Add a channel to the guide list, or update its source if already present.
+	 *  Source from signed metadata (tune-time) is more authoritative than
+	 *  the unsigned .well-known/tltv classification from discovery. */
 	function addChannelToGuide(id: string, name: string, hint: string, source: ChannelSource) {
-		if (guideChannels.some(c => c.id === id)) return;
+		const existing = guideChannels.find(c => c.id === id);
+		if (existing) {
+			// Update source + hints from signed metadata (more authoritative)
+			if (existing.source !== source || !existing.hints.includes(hint)) {
+				guideChannels = guideChannels.map(c => c.id === id ? {
+					...c,
+					source,
+					hints: c.hints.includes(hint) ? c.hints : [...c.hints, hint],
+				} : c);
+				saveGuideChannels();
+			}
+			return;
+		}
 		const ch: GuideChannel = { id, name, source, hints: [hint], blocks: [], guideVerified: null };
 		guideChannels = [...guideChannels, ch];
 		saveGuideChannels();
@@ -318,7 +340,10 @@
 					const wk = await wkResp.json();
 					originIds = new Set((wk.channels || []).map((c: { id: string }) => c.id));
 					relayIds = new Set((wk.relaying || []).map((c: { id: string }) => c.id));
+					// Origin channels are unremovable
 					homeChannelIds = originIds;
+					// All home node channels (origin + relayed) are pinned at top
+					homeNodeChannelIds = new Set([...originIds, ...relayIds]);
 				}
 			} catch {}
 			const getSource = (id: string, fallback: ChannelSource): ChannelSource =>
@@ -548,6 +573,7 @@
 		<div class="controls-bar">
 			<span class="bar-name">{getChannelName()}</span>
 			{#if getCurrentProgram()}<span class="bar-sep">/</span><span class="bar-program">{getCurrentProgram()}</span>{/if}
+			{#if playerStore.resolved?.source === 'relay'}<span class="bar-relay" class:bar-relay-spoofed={playerStore.resolved.claimedSource === 'origin'}>relay</span>{/if}
 			<span class="bar-spacer"></span>
 			<button class="bar-btn" onclick={toggleMute} title={playerStore.muted ? 'Unmute' : 'Mute'}>
 				{#if playerStore.muted}
@@ -726,6 +752,17 @@
 	.bar-name {
 		font-size: 0.85rem; font-weight: 600;
 		color: var(--fg); white-space: nowrap;
+	}
+	.bar-relay {
+		font-size: 0.65rem; color: var(--fg-faint);
+		border: 1px solid var(--fg-faint);
+		padding: 1px 5px;
+		white-space: nowrap;
+		letter-spacing: 0.02em;
+	}
+	.bar-relay-spoofed {
+		color: #e8a735;
+		border-color: #e8a735;
 	}
 	.bar-sep { font-size: 0.8rem; color: var(--fg-faint); }
 	.bar-program {

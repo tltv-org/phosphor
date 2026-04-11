@@ -4,6 +4,33 @@ import { fetchPeers, fetchWellKnown } from './discovery';
 
 const MAX_MIGRATION_HOPS = 5;
 
+/**
+ * Determine channel source using the signed origins field.
+ *
+ * The `origins` array in channel metadata is part of the signed document —
+ * unforgeable without the channel's private key. We compare the serving
+ * node's hostname against this array to determine if it's an origin or relay.
+ *
+ * Comparison is hostname-only (port stripped) to avoid false negatives when
+ * port formats differ (e.g. default port omitted vs explicit).
+ *
+ * @param hint - The node we're connected to (host:port).
+ * @param metadata - Signed channel metadata.
+ * @param fallback - Source to use if origins is absent or empty (default: 'relay').
+ */
+export function determineSource(
+	hint: string,
+	metadata: ChannelMetadata,
+	fallback: ChannelSource = 'relay'
+): ChannelSource {
+	if (!metadata.origins || metadata.origins.length === 0) return fallback;
+
+	const stripPort = (s: string): string => s.split(':')[0];
+	const hintHost = stripPort(hint);
+
+	return metadata.origins.some(o => stripPort(o) === hintHost) ? 'origin' : 'relay';
+}
+
 // Debug logging — stripped from production builds by Vite tree-shaking.
 const DEBUG = typeof globalThis !== 'undefined' && 'window' in globalThis
 	? /\bDEV\b/.test(String((globalThis as Record<string, unknown>).__TLTV_DEBUG)) || false
@@ -118,8 +145,8 @@ export async function resolveChannel(
 		onStatus?.(`Trying ${hint}...`);
 
 		try {
-			// Determine channel source from .well-known/tltv
-			let source: ChannelSource = 'peer';
+			// Determine channel source from .well-known/tltv (unsigned, advisory only)
+			let claimedSource: ChannelSource = 'peer';
 
 			if (!parsed.token) {
 				const wkUrl = `${baseUrl}/.well-known/tltv`;
@@ -135,14 +162,14 @@ export async function resolveChannel(
 				dbg('Looking for:', parsed.channelId);
 
 				if (originIds.includes(parsed.channelId)) {
-					source = 'origin';
+					claimedSource = 'origin';
 				} else if (relayIds.includes(parsed.channelId)) {
-					source = 'relay';
+					claimedSource = 'relay';
 				} else {
 					dbg('Channel not found at this hint');
 					continue;
 				}
-				dbg('Channel source:', source);
+				dbg('Claimed source:', claimedSource);
 			}
 
 			// Fetch channel metadata
@@ -209,6 +236,12 @@ export async function resolveChannel(
 				continue;
 			}
 
+			// Override source using signed origins field (unforgeable).
+			// The .well-known/tltv source is advisory only — origins in
+			// signed metadata is the authoritative signal.
+			const source = determineSource(hint, metadata, claimedSource);
+			dbg('Source after origins check:', source, '(claimed:', claimedSource + ')');
+
 			// Resolve stream URL
 			if (!metadata.stream) { dbg('No stream field in metadata'); continue; }
 			let streamUrl = baseUrl + metadata.stream;
@@ -221,6 +254,7 @@ export async function resolveChannel(
 				baseUrl,
 				verified,
 				source,
+				claimedSource,
 				hint,
 				token: parsed.token,
 			};
@@ -276,20 +310,23 @@ export async function resolveChannel(
 						if (verified === false) { dbg('Peer metadata signature invalid'); continue; }
 						if (metadata.v !== 1) { dbg('Peer metadata unsupported version:', metadata.v); continue; }
 
-						if (!metadata.stream) continue;
-						let streamUrl = peerBaseUrl + metadata.stream;
-						if (parsed.token) streamUrl += `?token=${encodeURIComponent(parsed.token)}`;
+					if (!metadata.stream) continue;
+					let streamUrl = peerBaseUrl + metadata.stream;
+					if (parsed.token) streamUrl += `?token=${encodeURIComponent(parsed.token)}`;
 
-					dbg('Resolved via peer discovery:', streamUrl);
-					return {
-						metadata,
-						streamUrl,
-						baseUrl: peerBaseUrl,
-						verified,
-						source: 'peer' as ChannelSource,
-						hint: peerHint,
-						token: parsed.token,
-					};
+				// Use signed origins to refine source — peer may actually be an origin or relay
+				const peerSource = determineSource(peerHint, metadata, 'peer');
+				dbg('Resolved via peer discovery:', streamUrl, 'source:', peerSource);
+				return {
+					metadata,
+					streamUrl,
+					baseUrl: peerBaseUrl,
+					verified,
+					source: peerSource,
+					claimedSource: 'peer',
+					hint: peerHint,
+					token: parsed.token,
+				};
 					} catch (e) {
 						dbg('Peer', peerHint, 'metadata fetch failed:', e);
 						continue;

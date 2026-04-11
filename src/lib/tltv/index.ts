@@ -14,7 +14,7 @@ export type {
 } from './types';
 
 // URI parsing and resolution
-export { parseTltvUri, hintToBaseUrl, resolveChannel } from './uri';
+export { parseTltvUri, hintToBaseUrl, resolveChannel, determineSource } from './uri';
 
 // Cryptography
 export {
