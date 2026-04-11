@@ -109,7 +109,7 @@ tltv://TVxxx...@myserver.com:8888     Full URI with hint
 tltv://TVxxx...                        Bare ID — resolves via local node + peer discovery
 ```
 
-Resolution verifies Ed25519 signatures (rejects invalid), checks protocol version (`v === 1`), and follows migration documents (up to 5 hops). After tuning, metadata is refreshed every 60s to detect stream URL changes, name changes, and key migrations. The guide polls every 30s.
+Resolution verifies Ed25519 signatures (rejects invalid), checks protocol version (`v === 1`), and follows migration documents (up to 5 hops). Origin vs relay status is determined from the signed `origins` field in channel metadata — not from the unsigned `.well-known/tltv` document. A relay badge appears in the controls bar when viewing via a relay node (yellow if the node is spoofing origin status via reverse proxy). After tuning, metadata is refreshed every 60s to detect stream URL changes, name changes, and key migrations. The guide polls every 30s.
 
 ## Design
 
